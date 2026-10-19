@@ -1,0 +1,14 @@
+# Everything is text by default; normalise to LF in the repository so the
+# archiso/mkarchiso build on Linux never sees a stray CR.
+* text=auto eol=lf
+
+*.sh    text eol=lf
+*.py    text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.md    text eol=lf
+
+# Binary-ish, never touch
+*.iso   binary
+*.png   binary
+*.jpg   binary

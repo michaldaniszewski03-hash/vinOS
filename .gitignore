@@ -1,0 +1,14 @@
+# archiso/mkarchiso working dirs and output
+out/
+work/
+profile/
+*.iso
+*.iso.sha256
+
+# Python
+__pycache__/
+*.pyc
+
+# Local packaging
+artifacts/
+*.zip
