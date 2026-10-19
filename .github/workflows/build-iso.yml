@@ -18,13 +18,23 @@ jobs:
       # The build logic lives in ci/build-iso.sh: it derives the stock archiso
       # `releng` profile, bakes the vinOS installer in (root autologin on tty1
       # runs /root/vinos/install.sh from the local payload) and runs mkarchiso.
+      # HOST_UID/HOST_GID let the script hand the root-owned build output back
+      # to the runner user, so later steps can write into out/.
       - name: Build ISO with archiso
-        run: docker run --privileged --rm -v "$PWD":/src -w /src archlinux:latest bash /src/ci/build-iso.sh
+        run: >
+          docker run --privileged --rm
+          -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)"
+          -v "$PWD":/src -w /src
+          archlinux:latest bash /src/ci/build-iso.sh
 
-      - name: Checksum
+      # The checksum is generated inside the container (ci/build-iso.sh), the
+      # same place the ISO is built; this step only verifies it is readable and
+      # that the ISO still matches.
+      - name: Verify checksum
         run: |
+          ls -l out
           cd out
-          sha256sum *.iso > vinos-iso.sha256
+          sha256sum -c vinos-iso.sha256
           cat vinos-iso.sha256
 
       - name: Upload artifact
