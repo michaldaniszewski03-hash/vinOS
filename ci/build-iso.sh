@@ -25,5 +25,25 @@ printf '%s\n' \
   >> profile/packages.x86_64
 
 mkarchiso -v -w work -o out profile
+
+# Checksum is written here, as root, on purpose: mkarchiso creates out/ owned by
+# root:root (mode 755), so a later step running as the unprivileged CI user
+# cannot create files inside it ("vinos-iso.sha256: Permission denied").
+cd out
+sha256sum -- *.iso > vinos-iso.sha256
+cat vinos-iso.sha256
+cd ..
 ls -l out
+
+# Hand the artifacts back to the user that owns the bind mount (the workflow
+# passes the runner's ids as HOST_UID/HOST_GID), so follow-up steps can write
+# into out/. If the chown is not possible (e.g. running by hand outside Docker),
+# fall back to a world-readable tree with a writable out/ directory.
+if [ -n "${HOST_UID:-}" ] && [ -n "${HOST_GID:-}" ] \
+   && chown "$HOST_UID:$HOST_GID" out out/* 2>/dev/null; then
+  :
+else
+  chmod -R a+rX out
+  chmod a+w out
+fi
 
