@@ -46,4 +46,3 @@ else
   chmod -R a+rX out
   chmod a+w out
 fi
-

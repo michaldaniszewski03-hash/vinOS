@@ -27,7 +27,7 @@ from PyQt6.QtWidgets import (
     QApplication, QButtonGroup, QCheckBox, QComboBox, QDialog,
     QDialogButtonBox, QFormLayout, QFrame, QGridLayout, QGroupBox,
     QHBoxLayout, QHeaderView, QLabel, QLineEdit, QMainWindow, QMessageBox,
-    QPlainTextEdit, QProgressBar, QRadioButton, QSizePolicy, QSpinBox,
+    QPlainTextEdit, QProgressBar, QPushButton, QRadioButton, QSizePolicy, QSpinBox,
     QStackedWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
 )
 
@@ -356,8 +356,8 @@ class Page1Locale(QWidget):
         self.keymap_combo.setCurrentIndex(idx if idx >= 0 else 0)
         i = self.tz_combo.findText(tz)
         self.tz_combo.setCurrentIndex(i if i >= 0 else 0)
-        w = globals().get("window")
-        if w is not None:  # not yet constructed during startup
+        w = self.window()
+        if w is not None and w is not self:  # not yet in a window during startup
             w.retranslate()
 
     def retranslate(self):
@@ -583,7 +583,7 @@ class Page4Install(QWidget):
         self.reboot_btn.clicked.connect(self._reboot)
         self.close_btn = QPushButton(tr("close"))
         self.close_btn.setVisible(False)
-        self.close_btn.clicked.connect(window.close)
+        self.close_btn.clicked.connect(self._close_window)
         btns.addWidget(self.reboot_btn)
         btns.addWidget(self.close_btn)
         btns.addStretch(1)
@@ -604,18 +604,21 @@ class Page4Install(QWidget):
         delta = datetime.timedelta(seconds=int(time.time() - self.start_time))
         self.elapsed_lbl.setText(tr("elapsed", t=str(delta)))
 
+    def _close_window(self):
+        self.window().close()
+
     def _reboot(self):
-        if QMessageBox.question(window, tr("app_title"), tr("reboot_now")) == QMessageBox.StandardButton.Yes:
+        if QMessageBox.question(self.window(), tr("app_title"), tr("reboot_now")) == QMessageBox.StandardButton.Yes:
             subprocess.Popen(["systemctl", "reboot"])
 
     def start(self):
         if not os.path.exists(BACKEND):
-            QMessageBox.critical(window, tr("app_title"), tr("err_backend_missing", path=BACKEND))
-            window.close()
+            QMessageBox.critical(self.window(), tr("app_title"), tr("err_backend_missing", path=BACKEND))
+            self.window().close()
             return
-        disk_page = window.stack.widget(2)
-        user_page = window.stack.widget(1)
-        locale_page = window.stack.widget(0)
+        disk_page = self.window().stack.widget(2)
+        user_page = self.window().stack.widget(1)
+        locale_page = self.window().stack.widget(0)
 
         args = ["bash", BACKEND,
                 "--username", user_page.username.text(),
@@ -689,7 +692,7 @@ class Page4Install(QWidget):
             self.status.setText("‼ " + tr("page4_title"))
             self.close_btn.setVisible(True)
             msg = self.error_seen or f"exit code {code}"
-            QMessageBox.critical(window, tr("app_title"), tr("err_install_failed", msg=msg))
+            QMessageBox.critical(self.window(), tr("app_title"), tr("err_install_failed", msg=msg))
 
 
 # --------------------------------------------------------------------------
