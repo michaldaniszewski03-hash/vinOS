@@ -1,0 +1,48 @@
+name: Build vinOS ISO
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build-iso:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # mkarchiso needs root + chroot, so it runs in a privileged container.
+      # The build logic lives in ci/build-iso.sh: it derives the stock archiso
+      # `releng` profile, bakes the vinOS installer in (root autologin on tty1
+      # runs /root/vinos/install.sh from the local payload) and runs mkarchiso.
+      - name: Build ISO with archiso
+        run: docker run --privileged --rm -v "$PWD":/src -w /src archlinux:latest bash /src/ci/build-iso.sh
+
+      - name: Checksum
+        run: |
+          cd out
+          sha256sum *.iso > vinos-iso.sha256
+          cat vinos-iso.sha256
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vinos-iso
+          path: |
+            out/*.iso
+            out/vinos-iso.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Attach ISO to release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/*.iso
+            out/vinos-iso.sha256
+          generate_release_notes: true
+
