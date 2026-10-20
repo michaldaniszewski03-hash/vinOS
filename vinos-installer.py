@@ -650,7 +650,10 @@ class Page4Install(QWidget):
         env = QProcessEnvironment.systemEnvironment()
         env.insert("VINOS_PASSWORD", user_page.password.text())
         self.proc.setProcessEnvironment(env)
-        self.proc.start("bash", args)
+        # args[0] is already the interpreter: passing "bash" as the program AND
+        # as args[0] makes bash treat itself as the script to run
+        # ("/usr/bin/bash: cannot execute binary file").
+        self.proc.start(args[0], args[1:])
         self.start_time = time.time()
         self.timer.start()
 
